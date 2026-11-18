@@ -131,7 +131,7 @@ if(list.firstElementChild)list.firstElementChild.focus();
 return {close:close,update:update};
 }
 var lastCallback=0;
-function getGoogleSuggest(query,finish){
+function getGoogleSuggest(query,finish,kind){
 var key='__ptenoSuggest'+(++lastCallback),finished=false;
 var tag=document.createElement('script');
 var timeout=setTimeout(function(){done(null);},2500);
@@ -147,7 +147,7 @@ var list=Array.isArray(data)&&Array.isArray(data[1])?data[1]:[];
 done(list.map(function(e){return Array.isArray(e)?e[0]:e;}).filter(function(e){return typeof e==='string';}));
 };
 tag.onerror=function(){done(null);};
-tag.src='https://suggestqueries.google.com/complete/search?client=chrome&ds=yt&hl=uk&gl=IE&ie=utf-8&oe=utf-8&q='+encodeURIComponent(query)+'&callback='+encodeURIComponent(key);
+tag.src='https://suggestqueries.google.com/complete/search?client=chrome'+(kind==='web'?'':'&ds=yt')+'&hl=uk&gl=IE&ie=utf-8&oe=utf-8&q='+encodeURIComponent(query)+'&callback='+encodeURIComponent(key);
 document.head.appendChild(tag);
 }
 function getInvidiousSuggest(query,finish){
@@ -175,7 +175,7 @@ if(found.toLowerCase().indexOf(query.toLowerCase())!==0)return;
 values.push({value:found,source:'Можливий канал · підказка Google (не перевірено)'});
 });
 done(values);
-});
+},'web');
 return;
 }
 getGoogleSuggest(query,function(list){
