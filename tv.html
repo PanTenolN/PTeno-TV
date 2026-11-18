@@ -40,6 +40,14 @@ input{background:#101e2e;color:#fff;border:2px solid #60788e;border-radius:12px;
 [hidden]{display:none!important}
 footer{margin:26px 0;color:#a7bdd1;font-size:15px}
 .kbd{border:1px solid #607589;border-radius:5px;padding:4px 7px}
+.suggest-wrap{position:relative;flex:1;min-width:240px}
+.suggest-wrap>input{width:100%;min-width:0}
+.suggest-list{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:50;max-height:300px;overflow-y:auto;background:#13283b;border:2px solid #83caff;border-radius:12px;box-shadow:0 14px 30px #000a}
+.suggest-list[hidden]{display:none}
+.suggest-item{width:100%;text-align:left;border:0;border-radius:0;background:transparent;min-height:47px;padding:9px 13px;display:block;font-weight:normal;white-space:normal}
+.suggest-item+.suggest-item{border-top:1px solid #38516a}
+.suggest-item[aria-selected="true"],.suggest-item:hover,.suggest-item:focus{background:#315d7e;outline:2px solid #9bd8ff;outline-offset:-2px}
+.suggest-source{font-size:13px;color:#b3ccdf;display:block;margin-top:3px}
 @media(max-width:850px){#results{grid-template-columns:repeat(2,minmax(0,1fr))}main{padding:15px}h1{font-size:26px}h2{font-size:23px}}
 @media(max-width:500px){#results{grid-template-columns:1fr}button,.btn{min-height:48px}}
 </style>
@@ -53,12 +61,12 @@ footer{margin:26px 0;color:#a7bdd1;font-size:15px}
 <section class="section" id="youtubeScreen">
 <h2>YouTube через Invidious</h2>
 <div class="actions">
-<input id="youtubeQuery" type="search" placeholder="Назва відео або каналу" aria-label="Пошук відео">
+<div class="suggest-wrap"><input id="youtubeQuery" type="search" placeholder="Назва відео або каналу" aria-label="Пошук відео" aria-autocomplete="list" aria-expanded="false" aria-controls="youtubeSuggestions" autocomplete="off"><div id="youtubeSuggestions" class="suggest-list" role="listbox" aria-label="Підказки YouTube" hidden></div></div>
 <button class="primary" id="youtubeSearch">Знайти</button>
 <button id="youtubePopular">Популярне</button><button id="retryServers">Перевірити інші сервери</button>
 <a class="btn" id="invidiousFallback" href="https://inv.nadeko.net/">Звичайний Invidious</a>
 </div>
-<p class="note">Результати й відео запускаються всередині PTeno TV, якщо сервер Invidious дозволяє API та програвання відео. Звичайний Invidious залишено як резервний варіант.</p>
+<p class="note">Підказки під час введення: онлайн-сервіс пошукових підказок Google (запит надсилається Google) або збережені на цьому телевізорі пошуки. Стрілки ↑↓, OK — вибір. Відео запускаються всередині PTeno TV, якщо Invidious API доступний.</p>
 <div class="actions" style="margin:15px 0">
 <input id="videoIdInput" type="text" placeholder="Посилання на YouTube або ID відео" aria-label="Посилання на відео">
 <button id="videoIdPlay">Відкрити відео за посиланням</button>
@@ -80,11 +88,11 @@ footer{margin:26px 0;color:#a7bdd1;font-size:15px}
 <section class="section" id="twitchScreen" hidden>
 <h2>Twitch — керування пультом</h2>
 <div class="actions">
-<input id="twitchChannel" placeholder="Назва каналу, наприклад twitch" aria-label="Назва каналу Twitch" autocapitalize="off" spellcheck="false">
+<div class="suggest-wrap"><input id="twitchChannel" placeholder="Назва каналу, наприклад twitch" aria-label="Назва каналу Twitch" autocapitalize="off" spellcheck="false" aria-autocomplete="list" aria-expanded="false" aria-controls="twitchSuggestions"><div id="twitchSuggestions" class="suggest-list" role="listbox" aria-label="Нещодавні канали Twitch" hidden></div></div>
 <button class="primary" id="twitchOpen">Відкрити канал</button>
 <a class="btn" id="twitchFallback" href="https://www.twitch.tv/">Звичайний Twitch</a>
 </div>
-<p class="note">У TiVo немає підтримки встановлення uBlock Origin через URL Loader. Реклама у вбудованому Twitch-плеєрі не блокується; цей режим лише полегшує керування пультом. Якщо канал показує Offline, перевір його у звичайному Twitch.</p>
+<p class="note">Підказки Twitch показують раніше відкриті на цьому телевізорі канали; онлайн-пошук каналів потребує Twitch API. У TiVo немає встановлення uBlock Origin через URL Loader. Реклама у Twitch-плеєрі не блокується.</p>
 <div class="player"><div id="twitchHost"></div></div>
 <div class="actions" style="margin-top:12px">
 <button id="twitchPlay" class="primary">▶ Play</button>
@@ -297,7 +305,8 @@ return;
 }
 var dirs={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
 var dir=dirs[k]||({37:'left',38:'up',39:'right',40:'down'})[c];
-if(dir&&(!input||dir==='up'||dir==='down')){
+var suggestionsShown=input && ((document.activeElement.id==='youtubeQuery'&&!byId('youtubeSuggestions').hidden)||(document.activeElement.id==='twitchChannel'&&!byId('twitchSuggestions').hidden));
+if(dir&&(!input||((dir==='up'||dir==='down')&&!suggestionsShown))){
 e.preventDefault();e.stopPropagation();
 move(dir);
 }
@@ -309,5 +318,6 @@ var initialQuery=params.get('q');
 if(mode!=='twitch'&&initialQuery){byId('youtubeQuery').value=initialQuery;searchYouTube(false);}
 })();
 </script>
+<script src="./suggestions.js" defer></script>
 </body>
 </html>
