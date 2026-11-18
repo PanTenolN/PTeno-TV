@@ -55,18 +55,20 @@ footer{margin:26px 0;color:#a7bdd1;font-size:15px}
 <body>
 <main>
 <header>
-<div><h1>PTeno TV <span style="font-size:16px;color:#a6cbe7">TV-режим · тестова версія 0.3</span></h1><p style="margin:3px 0">Спробуй стрілки та OK, не використовуючи курсор</p></div>
+<div><h1>PTeno TV <span style="font-size:16px;color:#a6cbe7">TV-режим · тестова версія 0.4</span></h1><p style="margin:3px 0">Спробуй стрілки та OK, не використовуючи курсор</p></div>
 <nav><a class="btn" href="./" id="homeLink">⌂ Головне меню</a><button id="ytTab">▶ YouTube</button><button id="twTab">T Twitch</button></nav>
 </header>
 <section class="section" id="youtubeScreen">
 <h2>YouTube через Invidious</h2>
 <div class="actions">
-<div class="suggest-wrap"><input id="youtubeQuery" type="search" placeholder="Назва відео або каналу" aria-label="Пошук відео" aria-autocomplete="list" aria-expanded="false" aria-controls="youtubeSuggestions" autocomplete="off"><div id="youtubeSuggestions" class="suggest-list" role="listbox" aria-label="Підказки YouTube" hidden></div></div>
+<div class="suggest-wrap"><input id="youtubeQuery" type="search" placeholder="Назва відео або каналу" aria-label="Пошук відео" aria-autocomplete="list" aria-expanded="false" aria-controls="youtubeSuggestions" autocomplete="off"><div id="youtubeSuggestions" class="suggest-list" role="listbox" aria-label="Підказки YouTube" hidden></div></div><button id="youtubePickSuggestion" hidden>↓ Вибрати підказку пультом</button>
 <button class="primary" id="youtubeSearch">Знайти</button>
 <button id="youtubePopular">Популярне</button><button id="retryServers">Перевірити інші сервери</button>
 <a class="btn" id="invidiousFallback" href="https://inv.nadeko.net/">Звичайний Invidious</a><a class="btn" href="https://www.youtube.com/" title="Оригінальний YouTube; реклама може з'являтися">Оригінальний YouTube (реклама можлива)</a>
 </div>
-<p class="note">Підказки під час введення: онлайн-сервіс пошукових підказок Google (запит надсилається Google) або збережені на цьому телевізорі пошуки. Стрілки ↑↓, OK — вибір. Відео запускаються всередині PTeno TV, якщо Invidious API доступний.</p>
+<p class="note">Після закриття клавіатури підказки залишаються відкритими. Натисни «↓ Вибрати підказку пультом», потім стрілки й OK. Онлайн-запити надсилаються Google або Invidious. YouTube відтворюється через Invidious.</p>
+<div class="actions" style="margin:8px 0"><button id="shieldToggle" aria-pressed="true">PTeno Shield: увімкнено</button><span id="shieldStatus" role="status" aria-live="polite" class="note">Захист готовий.</span></div>
+<p class="note">PTeno Shield пропускає спонсорські фрагменти у нашому програвачі за даними SponsorBlock. Це не розширення uBlock Origin і не блокує рекламу в офіційних YouTube/Twitch.</p>
 <div class="actions" style="margin:15px 0">
 <input id="videoIdInput" type="text" placeholder="Посилання на YouTube або ID відео" aria-label="Посилання на відео">
 <button id="videoIdPlay">Відкрити відео за посиланням</button>
@@ -88,11 +90,11 @@ footer{margin:26px 0;color:#a7bdd1;font-size:15px}
 <section class="section" id="twitchScreen" hidden>
 <h2>Twitch — керування пультом</h2>
 <div class="actions">
-<div class="suggest-wrap"><input id="twitchChannel" placeholder="Назва каналу, наприклад twitch" aria-label="Назва каналу Twitch" autocapitalize="off" spellcheck="false" aria-autocomplete="list" aria-expanded="false" aria-controls="twitchSuggestions"><div id="twitchSuggestions" class="suggest-list" role="listbox" aria-label="Нещодавні канали Twitch" hidden></div></div>
+<div class="suggest-wrap"><input id="twitchChannel" placeholder="Назва каналу, наприклад twitch" aria-label="Назва каналу Twitch" autocapitalize="off" spellcheck="false" aria-autocomplete="list" aria-expanded="false" aria-controls="twitchSuggestions"><div id="twitchSuggestions" class="suggest-list" role="listbox" aria-label="Схожі назви Twitch" hidden></div></div><button id="twitchPickSuggestion" hidden>↓ Вибрати підказку пультом</button>
 <button class="primary" id="twitchOpen">Відкрити канал</button>
 <a class="btn" id="twitchFallback" href="https://www.twitch.tv/">Звичайний Twitch</a>
 </div>
-<p class="note">Підказки Twitch показують раніше відкриті на цьому телевізорі канали; онлайн-пошук каналів потребує Twitch API. У TiVo немає встановлення uBlock Origin через URL Loader. Реклама у Twitch-плеєрі не блокується.</p>
+<p class="note">Підказки Twitch показують раніше відкриті канали та можливі назви зі сторонніх пошукових підказок. Це не перевірка існування каналу в Twitch. Коли клавіатуру закрито, натисни «↓ Вибрати підказку пультом», стрілки й OK. Реклама у вбудованому Twitch-плеєрі поки не блокується.</p>
 <div class="player"><div id="twitchHost"></div></div>
 <div class="actions" style="margin-top:12px">
 <button id="twitchPlay" class="primary">▶ Play</button>
@@ -133,6 +135,7 @@ var API_SERVERS=['https://inv.nadeko.net','https://invidious.nerdvpn.de','https:
 function videoUrl(id){return apiServer+'/latest_version?id='+encodeURIComponent(id)+'&itag=18&local=true';}
 function resetVideo(){
 video.pause();video.removeAttribute('src');video.load();
+if(window.PTenoShield)window.PTenoShield.clear();
 byId('ytPlayerSection').hidden=true;currentVideoId='';
 }
 function playVideo(item){
@@ -144,6 +147,7 @@ byId('ytPlayerSection').hidden=false;
 byId('videoTitle').textContent=(typeof item==='object'&&item.title)||'Відео '+id;
 byId('ytExternal').href=apiServer+'/watch?v='+encodeURIComponent(id);
 video.src=videoUrl(id);video.load();
+if(window.PTenoShield)window.PTenoShield.load(id);
 status('Відео завантажується. Натисни «▶ Відтворити / пауза».');
 byId('ytPlay').focus();
 }
@@ -210,7 +214,7 @@ return attempt(0);
 }
 function showResults(data){
 var root=byId('results');root.textContent='';
-var filtered=Array.isArray(data)?data.filter(function(x){return x.videoId&&x.type!=='channel'&&x.type!=='playlist';}):[];
+var filtered=Array.isArray(data)?data.filter(function(x){return x.videoId&&x.type!=='channel'&&x.type!=='playlist'&&!x.isAd&&!x.advertisement&&!x.promoted&&!x.sponsored;}):[];
 filtered.slice(0,24).forEach(function(x){root.appendChild(card(x));});
 status(filtered.length?'Знайдено відео: '+filtered.length+'. Вибери стрілками, натисни OK.':'Відео не знайдено або сервер не повернув результати.',!filtered.length);
 if(filtered.length)root.firstElementChild.focus();
@@ -318,6 +322,7 @@ var initialQuery=params.get('q');
 if(mode!=='twitch'&&initialQuery){byId('youtubeQuery').value=initialQuery;searchYouTube(false);}
 })();
 </script>
-<script src="./suggestions.js" defer></script>
+<script src="./suggestions.js?v=4" defer></script>
+<script src="./shield.js?v=4" defer></script>
 </body>
 </html>
