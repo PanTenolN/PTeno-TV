@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d121a">
+<title>PTeno TV — власне меню для TiVo</title>
+<style>
+  :root { color-scheme: dark; font-family: Arial, Helvetica, sans-serif; --bg:#0d121a; --text:#eef3f9; --muted:#adb9cb; --line:#2d3c4e; --accent:#7fc1ff; --card:#192433; }
+  * { box-sizing:border-box; }
+  html,body { min-height:100%; margin:0; background:var(--bg); color:var(--text); }
+  body { background-image:radial-gradient(ellipse at 80% -20%,#1d3b57 0, transparent 45%),radial-gradient(ellipse at 0% 95%, #182a3d 0, transparent 46%); }
+  .app { max-width:1600px; margin:0 auto; padding:clamp(18px,3vw,55px); }
+  header { display:flex; align-items:center; justify-content:space-between; gap:20px; border-bottom:1px solid var(--line); padding-bottom:22px; }
+  .brand { display:flex; align-items:center; gap:18px; }
+  .logo { display:grid; place-items:center; width:62px; height:62px; background:linear-gradient(145deg,#4284ff,#76d3f5); border-radius:17px; color:#071a2c; font-size:30px; font-weight:900; }
+  h1 { font-size:clamp(28px,3.1vw,43px); letter-spacing:-1px; margin:0 0 4px; }
+  .muted,.sub { color:var(--muted); }
+  .sub { font-size:clamp(14px,1.4vw,19px); }
+  .right { text-align:right; flex-shrink:0; }
+  #clock {font-size:clamp(24px,3vw,41px);font-weight:bold;font-variant-numeric:tabular-nums}
+  #date {color:var(--muted);font-size:17px}
+  h2 { font-size:clamp(20px,2.1vw,29px); font-weight:700; margin:28px 0 15px; }
+  .cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+  .tile { position:relative; text-decoration:none; color:var(--text); min-height:190px; padding:24px; border-radius:23px; background:var(--card); border:2px solid #304156; display:flex; flex-direction:column; justify-content:space-between; transition:background-color .12s,border-color .12s,transform .12s; outline:none; cursor:pointer; text-align:left; }
+  .tile:hover { background:#213349; }
+  .tile:focus,.tile.selected { background:#263f55; border-color:#a6ddff; outline:4px solid rgba(110,184,255,.34); outline-offset:2px; transform:scale(1.015); }
+  .tile .badge {width:62px;height:62px;display:grid;place-items:center;font-size:29px;font-weight:bold;border-radius:16px;background:#3b526b; color:#fff;}
+  .tile.youtube .badge {background:#e53348;}
+  .tile.twitch .badge {background:#7646cf;}
+  .tile.google .badge {background:#4376ce;}
+  .tile.search .badge {background:#236f75;}
+  .tile.settings .badge {background:#5b637c;}
+  .tile.info .badge {background:#67734a;}
+  .tile strong {font-size:clamp(24px,2.3vw,33px);line-height:1.1;display:block;margin:14px 0 7px;}
+  .tile span:last-child {color:#b8c6d5;font-size:clamp(15px,1.35vw,19px);line-height:1.3;}
+  .panel {margin-top:25px;background:rgba(21,31,43,.84);border:1px solid var(--line);padding:22px;border-radius:18px;}
+  .panel[hidden] {display:none;}
+  .actions {display:flex;flex-wrap:wrap;gap:13px;align-items:stretch;}
+  input,button {font:inherit;border-radius:12px;min-height:51px;padding:12px 16px;}
+  input {color:var(--text);background:#101c29;border:2px solid #506175;min-width:200px;flex:1;}
+  button {background:#2b4961;border:2px solid #49647d;color:white;font-weight:bold;cursor:pointer;}
+  button:focus, input:focus {outline:4px solid rgba(110,184,255,.4); outline-offset:2px; border-color:#a9ddff;}
+  .primary {background:#327db3;border-color:#5da6dc;}
+  label {display:block;color:#cbd5e4;margin-bottom:9px;font-size:18px;}
+  .fields {display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  p {line-height:1.5;color:#c1cfdf;margin:10px 0;}
+  .small {font-size:15px;color:#9fb1c7;}
+  .status {min-height:25px;color:#8ed7b1;font-size:16px;margin:13px 0 0;}
+  footer {padding-top:18px;display:flex;gap:16px;flex-wrap:wrap;color:#a4b6c8;font-size:16px;}
+  kbd {background:#304051;padding:3px 8px;border-radius:6px;color:white;font-weight:bold;font-family:Arial,sans-serif;}
+  @media(max-width:800px) { .cards{grid-template-columns:repeat(2,minmax(0,1fr))} .tile{min-height:160px} .fields{grid-template-columns:1fr} }
+  @media(max-width:480px) { .cards{grid-template-columns:1fr} .right{display:none} .tile{min-height:135px} }
+  @media(max-height:650px) and (min-width:801px) { .app{padding:18px 35px} header{padding-bottom:14px} .tile{min-height:155px;padding:18px} .tile .badge{width:46px;height:46px;font-size:23px} h2{margin:19px 0 12px} }
+  @media(prefers-reduced-motion:reduce) {.tile{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><div class="logo" aria-hidden="true">P</div><div><h1>PTeno TV</h1><div class="sub">Твоє меню без зайвих банерів • TiVo OS</div></div></div>
+    <div class="right"><div id="clock">--:--</div><div id="date">Готово до запуску</div></div>
+  </header>
+  <main>
+    <h2>Головне меню</h2>
+    <div class="cards" id="cards">
+      <a class="tile youtube" id="youtube" href="https://inv.nadeko.net/" data-nav="1"><span class="badge" aria-hidden="true">▶</span><span><strong>YouTube</strong><span>Без звичайної реклами · Invidious</span></span></a>
+      <a class="tile twitch" href="https://www.twitch.tv/" data-nav="1"><span class="badge" aria-hidden="true">T</span><span><strong>Twitch</strong><span>Перегляд стрімів · перевірити сумісність</span></span></a>
+      <a class="tile google" href="https://www.google.com/" data-nav="1"><span class="badge" aria-hidden="true">G</span><span><strong>Google</strong><span>Пошук у браузері телевізора</span></span></a>
+      <button type="button" class="tile search" id="searchTile" data-nav="1"><span class="badge" aria-hidden="true">⌕</span><span><strong>Пошук</strong><span>Шукати відео або вебсторінки</span></span></button>
+      <button type="button" class="tile settings" id="settingsTile" data-nav="1"><span class="badge" aria-hidden="true">⚙</span><span><strong>Налаштування</strong><span>Адреса Invidious та Twitch</span></span></button>
+      <button type="button" class="tile info" id="infoTile" data-nav="1"><span class="badge" aria-hidden="true">i</span><span><strong>Про меню</strong><span>Керування пультом і діагностика</span></span></button>
+    </div>
+    <section class="panel" id="searchPanel" hidden>
+      <h2>Пошук</h2>
+      <label for="q">Введи запит</label>
+      <div class="actions"><input id="q" type="search" placeholder="Наприклад: музика, відео, новини"><button class="primary" id="videoSearch">Шукати на YouTube</button><button id="webSearch">Пошук Google</button><button id="closeSearch">Закрити</button></div>
+    </section>
+    <section class="panel" id="settingsPanel" hidden>
+      <h2>Налаштування адрес</h2>
+      <div class="fields"><div><label for="invidiousUrl">Сервер Invidious (HTTPS)</label><input id="invidiousUrl" type="url" value="https://inv.nadeko.net/"></div><div><label for="twitchUrl">Адреса Twitch (HTTPS)</label><input id="twitchUrl" type="url" value="https://www.twitch.tv/"></div></div>
+      <p class="small">Збереження працює, якщо браузер телевізора дозволяє localStorage. Адреси мають починатися з https://. Не вводь сюди паролі або токени.</p>
+      <div class="actions"><button class="primary" id="saveSettings">Зберегти</button><button id="resetSettings">Стандартні адреси</button><button id="closeSettings">Закрити</button></div><p class="status" id="settingsStatus" aria-live="polite"></p>
+    </section>
+    <section class="panel" id="infoPanel" hidden>
+      <h2>Про PTeno TV</h2>
+      <p>Це окрема HTML-сторінка, а не нова прошивка. Вона не видаляє системну рекламу з TiVo OS і не встановлює Android-застосунки.</p>
+      <p>Для керування використовуй стрілки пульта та OK. Кнопка Назад/Escape закриває відкриту панель. Після переходу на інший сайт повернення залежить від можливостей URL Loader.</p>
+      <p class="small" id="diag">Діагностика браузера...</p><button id="closeInfo">Закрити</button>
+    </section>
+  </main>
+  <footer><span><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> навігація</span><span><kbd>OK</kbd> відкрити</span><span><kbd>Back</kbd> закрити панель</span><span>Без реклами та аналітики у самому меню</span></footer>
+</div>
+<script>
+(function () {
+  'use strict';
+  var DEFAULT_IV = 'https://inv.nadeko.net/';
+  var DEFAULT_TW = 'https://www.twitch.tv/';
+  function el(id) { return document.getElementById(id); }
+  function getStore(k, fallback) { try { return localStorage.getItem(k) || fallback; } catch(e) { return fallback; } }
+  function setStore(k, value) { try { localStorage.setItem(k,value); return true; } catch(e) { return false; } }
+  function validHttps(v) { try { var url = new URL(v); return url.protocol === 'https:' ? url.href : null; } catch(e) { return null; } }
+  var iv = validHttps(getStore('ptenotv_invidious', DEFAULT_IV)) || DEFAULT_IV;
+  var tw = validHttps(getStore('ptenotv_twitch', DEFAULT_TW)) || DEFAULT_TW;
+  function apply() { el('youtube').href = iv; el('invidiousUrl').value = iv; document.querySelector('.tile.twitch').href = tw; el('twitchUrl').value = tw; }
+  apply();
+  var panels = ['searchPanel','settingsPanel','infoPanel'];
+  function closePanels() { panels.forEach(function(id){ el(id).hidden = true; }); }
+  function openPanel(id) { closePanels(); el(id).hidden = false; if (id === 'searchPanel') el('q').focus(); else if (id === 'settingsPanel') el('invidiousUrl').focus(); else el('closeInfo').focus(); }
+  el('searchTile').onclick = function(){ openPanel('searchPanel'); };
+  el('settingsTile').onclick = function(){ openPanel('settingsPanel'); };
+  el('infoTile').onclick = function(){
+    var storage = 'недоступне'; try {var k='ptenotv_check'; localStorage.setItem(k,'1'); localStorage.removeItem(k); storage='доступне';}catch(e){}
+    el('diag').textContent = 'Розмір екрана: '+window.innerWidth+'×'+window.innerHeight+'; збереження: '+storage+'; User Agent: '+navigator.userAgent;
+    openPanel('infoPanel');
+  };
+  ['closeSearch','closeSettings','closeInfo'].forEach(function(id){el(id).onclick = function(){closePanels(); el('searchTile').focus();};});
+  function query() {return el('q').value.trim();}
+  el('videoSearch').onclick = function(){ if(query()) location.href=iv.replace(/\/$/, '')+'/search?q='+encodeURIComponent(query()); else el('q').focus(); };
+  el('webSearch').onclick = function(){ if(query()) location.href='https://www.google.com/search?q='+encodeURIComponent(query()); else el('q').focus(); };
+  el('q').addEventListener('keydown',function(e){ if(e.key==='Enter' || e.keyCode===13){e.preventDefault();el('videoSearch').click();} });
+  el('saveSettings').onclick = function(){
+    var a = validHttps(el('invidiousUrl').value.trim()); var b = validHttps(el('twitchUrl').value.trim());
+    if (!a || !b) {el('settingsStatus').textContent='Введи дві дійсні HTTPS-адреси.'; return;}
+    iv=a; tw=b; apply(); var stored = setStore('ptenotv_invidious',iv) && setStore('ptenotv_twitch',tw);
+    el('settingsStatus').textContent = stored ? 'Збережено на цьому телевізорі.' : 'Адреси працюють до перезавантаження сторінки; браузер заборонив збереження.';
+  };
+  el('resetSettings').onclick = function(){el('invidiousUrl').value=DEFAULT_IV;el('twitchUrl').value=DEFAULT_TW;el('saveSettings').click();};
+  function updateClock(){var d=new Date();el('clock').textContent=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);try{el('date').textContent=d.toLocaleDateString('uk-UA',{weekday:'long',day:'numeric',month:'long'});}catch(e){el('date').textContent=d.toDateString();}}
+  updateClock();setInterval(updateClock,30000);
+  var nav = Array.prototype.slice.call(document.querySelectorAll('[data-nav]'));
+  function mainIndex(){var i=nav.indexOf(document.activeElement);return i>=0?i:0;}
+  document.addEventListener('keydown',function(e){
+    var code=e.keyCode;var key=e.key;var back=(key==='Escape'||key==='Backspace'||code===8||code===27||code===461||code===10009);
+    var panelOpen=panels.some(function(id){return !el(id).hidden;});
+    if(back && panelOpen && document.activeElement.tagName!=='INPUT'){e.preventDefault();closePanels();el('searchTile').focus();return;}
+    if(panelOpen) return;
+    var dir=(key==='ArrowRight'||code===39)?1:(key==='ArrowLeft'||code===37)?-1:(key==='ArrowDown'||code===40)?3:(key==='ArrowUp'||code===38)?-3:0;
+    if(dir){e.preventDefault();var n=mainIndex()+dir;if(n<0)n=0;if(n>=nav.length)n=nav.length-1;nav[n].focus();}
+    if ((key==='Enter'||code===13) && nav.indexOf(document.activeElement)>=0 && document.activeElement.tagName==='BUTTON') {e.preventDefault();document.activeElement.click();}
+  },false);
+  window.addEventListener('load',function(){nav[0].focus();});
+})();
+</script>
+</body>
+</html>
