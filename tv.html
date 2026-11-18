@@ -42,7 +42,7 @@ footer{margin:26px 0;color:#a7bdd1;font-size:15px}
 .kbd{border:1px solid #607589;border-radius:5px;padding:4px 7px}
 .suggest-wrap{position:relative;flex:1;min-width:240px}
 .suggest-wrap>input{width:100%;min-width:0}
-.suggest-list{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:50;max-height:300px;overflow-y:auto;background:#13283b;border:2px solid #83caff;border-radius:12px;box-shadow:0 14px 30px #000a}
+.suggest-list{position:relative;margin-top:6px;z-index:2;width:100%;max-height:300px;overflow-y:auto;background:#13283b;border:2px solid #83caff;border-radius:12px;box-shadow:0 14px 30px #000a}
 .suggest-list[hidden]{display:none}
 .suggest-item{width:100%;text-align:left;border:0;border-radius:0;background:transparent;min-height:47px;padding:9px 13px;display:block;font-weight:normal;white-space:normal}
 .suggest-item+.suggest-item{border-top:1px solid #38516a}
@@ -301,6 +301,14 @@ var k=e.key,c=e.keyCode;
 var input=document.activeElement&&document.activeElement.tagName==='INPUT';
 var back=k==='Escape'||k==='Backspace'||c===461||c===10009||c===27;
 if(back&&!input){
+var openList=(!byId('youtubeSuggestions').hidden&&!byId('youtubeScreen').hidden)?'youtube':(!byId('twitchSuggestions').hidden&&!byId('twitchScreen').hidden)?'twitch':'';
+if(openList){
+e.preventDefault();e.stopPropagation();
+byId(openList+'Suggestions').hidden=true;
+byId(openList==='youtube'?'youtubePickSuggestion':'twitchPickSuggestion').hidden=true;
+byId(openList==='youtube'?'youtubeSearch':'twitchOpen').focus();
+return;
+}
 e.preventDefault();e.stopPropagation();
 if(!byId('youtubeScreen').hidden&&currentVideoId){resetVideo();byId('youtubeQuery').focus();}
 else if(!byId('twitchScreen').hidden){section('youtube');}
