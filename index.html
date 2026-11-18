@@ -64,8 +64,8 @@
   <main>
     <h2>Головне меню</h2>
     <div class="cards" id="cards">
-      <a class="tile youtube" id="youtube" href="https://inv.nadeko.net/" data-nav="1"><span class="badge" aria-hidden="true">▶</span><span><strong>YouTube</strong><span>Без звичайної реклами · Invidious</span></span></a>
-      <a class="tile twitch" href="https://www.twitch.tv/" data-nav="1"><span class="badge" aria-hidden="true">T</span><span><strong>Twitch</strong><span>Перегляд стрімів · перевірити сумісність</span></span></a>
+      <a class="tile youtube" id="youtube" href="tv.html?service=youtube" data-nav="1"><span class="badge" aria-hidden="true">▶</span><span><strong>YouTube</strong><span>ТВ-режим · пошук і відтворення пультом</span></span></a>
+      <a class="tile twitch" href="tv.html?service=twitch" data-nav="1"><span class="badge" aria-hidden="true">T</span><span><strong>Twitch</strong><span>ТВ-режим · канали та керування</span></span></a>
       <a class="tile google" href="https://www.google.com/" data-nav="1"><span class="badge" aria-hidden="true">G</span><span><strong>Google</strong><span>Пошук у браузері телевізора</span></span></a>
       <button type="button" class="tile search" id="searchTile" data-nav="1"><span class="badge" aria-hidden="true">⌕</span><span><strong>Пошук</strong><span>Шукати відео або вебсторінки</span></span></button>
       <button type="button" class="tile settings" id="settingsTile" data-nav="1"><span class="badge" aria-hidden="true">⚙</span><span><strong>Налаштування</strong><span>Адреса Invidious та Twitch</span></span></button>
@@ -102,7 +102,7 @@
   function validHttps(v) { try { var url = new URL(v); return url.protocol === 'https:' ? url.href : null; } catch(e) { return null; } }
   var iv = validHttps(getStore('ptenotv_invidious', DEFAULT_IV)) || DEFAULT_IV;
   var tw = validHttps(getStore('ptenotv_twitch', DEFAULT_TW)) || DEFAULT_TW;
-  function apply() { el('youtube').href = iv; el('invidiousUrl').value = iv; document.querySelector('.tile.twitch').href = tw; el('twitchUrl').value = tw; }
+  function apply() { el('youtube').href = 'tv.html?service=youtube'; el('invidiousUrl').value = iv; document.querySelector('.tile.twitch').href = 'tv.html?service=twitch'; el('twitchUrl').value = tw; }
   apply();
   var panels = ['searchPanel','settingsPanel','infoPanel'];
   function closePanels() { panels.forEach(function(id){ el(id).hidden = true; }); }
@@ -116,7 +116,7 @@
   };
   ['closeSearch','closeSettings','closeInfo'].forEach(function(id){el(id).onclick = function(){closePanels(); el('searchTile').focus();};});
   function query() {return el('q').value.trim();}
-  el('videoSearch').onclick = function(){ if(query()) location.href=iv.replace(/\/$/, '')+'/search?q='+encodeURIComponent(query()); else el('q').focus(); };
+  el('videoSearch').onclick = function(){ if(query()) location.href='tv.html?service=youtube&q='+encodeURIComponent(query()); else el('q').focus(); };
   el('webSearch').onclick = function(){ if(query()) location.href='https://www.google.com/search?q='+encodeURIComponent(query()); else el('q').focus(); };
   el('q').addEventListener('keydown',function(e){ if(e.key==='Enter' || e.keyCode===13){e.preventDefault();el('videoSearch').click();} });
   el('saveSettings').onclick = function(){
