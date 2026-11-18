@@ -1,6 +1,8 @@
-/* PTeno TV 0.3 — keyboard/remote autocomplete without dependencies.
- * YouTube suggestions: Google Suggest (unofficial, can fail) with Invidious API fallback.
- * Twitch suggestions: local recent channel names only; no fake live directory.
+/* PTeno TV 0.4 — remote-friendly autocomplete.
+ * Results persist after the on-screen keyboard closes.
+ * YouTube: Google Suggest / Invidious / local history.
+ * Twitch: Google search suggestions for possible channel names + local history.
+ * Google results are NOT verified Twitch accounts.
  */
 (function(){
 'use strict';
@@ -25,8 +27,15 @@ try{localStorage.setItem('ptenotv_recent_'+(kind==='youtube'?'yt':'tw'),JSON.str
 }
 function setup(kind,input,list){
 var current=[],selected=-1,sequence=0,delay=null;
+var chooseButton=el(kind==='youtube'?'youtubePickSuggestion':'twitchPickSuggestion');
+if(chooseButton){
+chooseButton.onclick=function(){
+if(list.hidden||!list.firstElementChild)return;
+list.firstElementChild.focus();
+};
+}
 function close(){
-list.hidden=true;list.textContent='';input.setAttribute('aria-expanded','false');
+list.hidden=true;list.textContent='';if(chooseButton)chooseButton.hidden=true;input.setAttribute('aria-expanded','false');
 input.removeAttribute('aria-activedescendant');selected=-1;current=[];
 }
 function draw(items){
@@ -43,7 +52,7 @@ b.appendChild(sub);
 b.onclick=function(){pick(i);};
 list.appendChild(b);
 });
-list.hidden=false;input.setAttribute('aria-expanded','true');
+list.hidden=false;if(chooseButton)chooseButton.hidden=false;input.setAttribute('aria-expanded','true');
 }
 function pick(i){
 if(i<0||i>=current.length)return;
@@ -87,10 +96,10 @@ var value=input.value.trim();
 if(!value){close();return;}
 var local=recent(value);
 draw(local);
-if(kind==='twitch'||value.length<2)return;
+if(value.length<2)return;
 delay=setTimeout(function(){
-getOnline(value,function(online){
-if(request!==sequence||input.value.trim()!==value||document.activeElement!==input)return;
+getOnline(kind,value,function(online){
+if(request!==sequence||input.value.trim()!==value)return;
 draw(combine(local,online));
 });
 },340);
@@ -109,10 +118,16 @@ if(enter&&selected>=0&&!list.hidden){
 event.preventDefault();event.stopImmediatePropagation();pick(selected);return;
 }
 if(back&&!list.hidden){
-event.preventDefault();event.stopImmediatePropagation();close();
+event.preventDefault();event.stopImmediatePropagation();
+if(document.activeElement===input){
+input.blur(); // TV closes keyboard; suggestions stay on screen.
+if(list.firstElementChild)list.firstElementChild.focus();
+}else close();
 }
 },true);
-input.addEventListener('blur',function(){setTimeout(close,170);});
+// Do NOT close on blur: on Sharp TiVo OS dismissing the keyboard blurs inputs.
+// The dropdown remains available to remote arrows/OK and the separate "Choose" button.
+
 return {close:close,update:update};
 }
 var lastCallback=0;
@@ -146,7 +161,23 @@ fetch(server+'/api/v1/search/suggestions?q='+encodeURIComponent(query),options).
 if(!r.ok)throw Error('HTTP '+r.status);return r.json();
 }).then(function(data){finishOnce(Array.isArray(data.suggestions)?data.suggestions:[]);}).catch(function(){finishOnce([]);});
 }
-function getOnline(query,done){
+function getOnline(kind,query,done){
+if(kind==='twitch'){
+// Public search suggestions, not confirmed Twitch accounts. Official Helix search requires OAuth.
+getGoogleSuggest('twitch '+query,function(list){
+var values=[];
+(list||[]).forEach(function(item){
+if(typeof item!=='string')return;
+var found=item.trim().replace(/^twitch(?:\.tv)?(?:\s+|\/|\s*[:\-]\s*)/i,'').trim();
+if(!/^[A-Za-z0-9_]{3,25}$/.test(found))return;
+// Only show plausible channel logins; streamer existence is not verified.
+if(found.toLowerCase().indexOf(query.toLowerCase())!==0)return;
+values.push({value:found,source:'Можливий канал · підказка Google (не перевірено)'});
+});
+done(values);
+});
+return;
+}
 getGoogleSuggest(query,function(list){
 if(Array.isArray(list)&&list.length){done(list.map(function(x){return {value:x,source:'Пошукова підказка Google'};}));return;}
 getInvidiousSuggest(query,function(items){
