@@ -258,8 +258,11 @@ e.preventDefault();e.stopPropagation();
 move(dir);
 }
 },true);
-var mode=new URLSearchParams(location.search).get('service');
+var params=new URLSearchParams(location.search);
+var mode=params.get('service');
 section(mode==='twitch'?'twitch':'youtube');
+var initialQuery=params.get('q');
+if(mode!=='twitch'&&initialQuery){byId('youtubeQuery').value=initialQuery;searchYouTube(false);}
 })();
 </script>
 </body>
