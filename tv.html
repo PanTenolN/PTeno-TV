@@ -55,10 +55,14 @@ footer{margin:26px 0;color:#a7bdd1;font-size:15px}
 <div class="actions">
 <input id="youtubeQuery" type="search" placeholder="Назва відео або каналу" aria-label="Пошук відео">
 <button class="primary" id="youtubeSearch">Знайти</button>
-<button id="youtubePopular">Популярне</button>
+<button id="youtubePopular">Популярне</button><button id="retryServers">Перевірити інші сервери</button>
 <a class="btn" id="invidiousFallback" href="https://inv.nadeko.net/">Звичайний Invidious</a>
 </div>
 <p class="note">Результати й відео запускаються всередині PTeno TV, якщо сервер Invidious дозволяє API та програвання відео. Звичайний Invidious залишено як резервний варіант.</p>
+<div class="actions" style="margin:15px 0">
+<input id="videoIdInput" type="text" placeholder="Посилання на YouTube або ID відео" aria-label="Посилання на відео">
+<button id="videoIdPlay">Відкрити відео за посиланням</button>
+</div>
 <div id="ytPlayerSection" hidden>
 <h2 id="videoTitle">Відео</h2>
 <div class="player"><video id="ytVideo" playsinline preload="metadata"></video></div>
@@ -80,7 +84,7 @@ footer{margin:26px 0;color:#a7bdd1;font-size:15px}
 <button class="primary" id="twitchOpen">Відкрити канал</button>
 <a class="btn" id="twitchFallback" href="https://www.twitch.tv/">Звичайний Twitch</a>
 </div>
-<p class="note">Вбудований плеєр Twitch потребує доступу до сервісів Twitch і може не працювати в TiVo. Реклама Twitch не блокується. Стрім можна вибрати за назвою каналу, а керування лишається у нашому меню.</p>
+<p class="note">У TiVo немає підтримки встановлення uBlock Origin через URL Loader. Реклама у вбудованому Twitch-плеєрі не блокується; цей режим лише полегшує керування пультом. Якщо канал показує Offline, перевір його у звичайному Twitch.</p>
 <div class="player"><div id="twitchHost"></div></div>
 <div class="actions" style="margin-top:12px">
 <button id="twitchPlay" class="primary">▶ Play</button>
@@ -116,7 +120,9 @@ else byId('youtubeQuery').focus();
 byId('ytTab').onclick=function(){section('youtube');};
 byId('twTab').onclick=function(){section('twitch');};
 var video=byId('ytVideo');var currentVideoId='';
-function videoUrl(id){return IV+'/latest_version?id='+encodeURIComponent(id)+'&itag=18&local=true';}
+var apiServer=IV;
+var API_SERVERS=['https://inv.nadeko.net','https://invidious.nerdvpn.de','https://invidious.tiekoetter.com','https://yt.chocolatemoo53.com'];
+function videoUrl(id){return apiServer+'/latest_version?id='+encodeURIComponent(id)+'&itag=18&local=true';}
 function resetVideo(){
 video.pause();video.removeAttribute('src');video.load();
 byId('ytPlayerSection').hidden=true;currentVideoId='';
@@ -128,7 +134,7 @@ currentVideoId=id;
 video.pause();
 byId('ytPlayerSection').hidden=false;
 byId('videoTitle').textContent=(typeof item==='object'&&item.title)||'Відео '+id;
-byId('ytExternal').href=IV+'/watch?v='+encodeURIComponent(id);
+byId('ytExternal').href=apiServer+'/watch?v='+encodeURIComponent(id);
 video.src=videoUrl(id);video.load();
 status('Відео завантажується. Натисни «▶ Відтворити / пауза».');
 byId('ytPlay').focus();
@@ -143,6 +149,23 @@ byId('ytBack10').onclick=function(){try{video.currentTime=Math.max(0,video.curre
 byId('ytForward10').onclick=function(){try{video.currentTime=video.currentTime+10;}catch(e){}};
 byId('ytMute').onclick=function(){video.muted=!video.muted;byId('ytMute').textContent=video.muted?'Звук: вимкнено':'Звук: увімкнено';};
 byId('ytClose').onclick=function(){resetVideo();byId('youtubeQuery').focus();};
+function parseVideoId(text){
+var value=text.trim();
+if(/^[A-Za-z0-9_-]{11}$/.test(value))return value;
+try{
+var url=new URL(value),host=url.hostname.toLowerCase();
+if(host==='youtu.be')value=url.pathname.split('/')[1]||'';
+else if(host==='youtube.com'||host==='www.youtube.com'||host==='m.youtube.com')value=url.searchParams.get('v')||'';
+else if(API_SERVERS.some(function(s){return new URL(s).hostname===host;})||new URL(IV).hostname===host)value=url.searchParams.get('v')||'';
+else return null;
+return /^[A-Za-z0-9_-]{11}$/.test(value)?value:null;
+}catch(e){return null;}
+}
+byId('videoIdPlay').onclick=function(){
+var id=parseVideoId(byId('videoIdInput').value);
+if(!id){status('Введи посилання YouTube або ID відео (11 символів).',true);return;}
+apiServer=IV;playVideo(id);
+};
 function card(item){
 var b=document.createElement('button');b.type='button';b.className='video-card';
 var img=document.createElement('img');img.alt='';
@@ -154,10 +177,28 @@ var meta=document.createElement('small');meta.textContent=item.author||'';b.appe
 b.onclick=function(){playVideo(item);};
 return b;
 }
-function getJson(path){
-return fetch(IV+path,{method:'GET',mode:'cors',credentials:'omit'}).then(function(r){
-if(!r.ok)throw Error('HTTP '+r.status);return r.json();
+function getJson(server,path){
+var opts={method:'GET',mode:'cors',credentials:'omit',cache:'no-store'},timer,controller;
+if(typeof AbortController!=='undefined'){controller=new AbortController();opts.signal=controller.signal;timer=setTimeout(function(){controller.abort();},7500);}
+return fetch(server+path,opts).then(function(response){
+if(!response.ok)throw Error('HTTP '+response.status);
+return response.json();
+}).then(function(json){if(timer)clearTimeout(timer);return json;},function(error){if(timer)clearTimeout(timer);throw error;});
+}
+function tryServers(path,all){
+var servers=[IV].concat(API_SERVERS).filter(function(s,i,arr){return arr.indexOf(s)===i;});
+if(!all)servers=servers.slice(0,2);
+var failures=[];
+function attempt(i){
+if(i>=servers.length)throw new Error(failures.join('; ')||'Немає доступного API');
+var host=servers[i];
+status('Перевіряю Invidious API '+(i+1)+'/'+servers.length+'...');
+return getJson(host,path).then(function(json){apiServer=host;return json;},function(e){
+failures.push(new URL(host).hostname+': '+(e.name==='AbortError'?'перевищено час':e.message));
+return attempt(i+1);
 });
+}
+return attempt(0);
 }
 function showResults(data){
 var root=byId('results');root.textContent='';
@@ -166,17 +207,20 @@ filtered.slice(0,24).forEach(function(x){root.appendChild(card(x));});
 status(filtered.length?'Знайдено відео: '+filtered.length+'. Вибери стрілками, натисни OK.':'Відео не знайдено або сервер не повернув результати.',!filtered.length);
 if(filtered.length)root.firstElementChild.focus();
 }
-function searchYouTube(popular){
+function searchYouTube(popular,all){
 var q=byId('youtubeQuery').value.trim();
 if(!popular&&!q){byId('youtubeQuery').focus();return;}
 status('Завантаження результатів...');
 byId('results').textContent='';
 var path=popular?'/api/v1/popular':'/api/v1/search?q='+encodeURIComponent(q)+'&type=video';
-getJson(path).then(showResults).catch(function(e){
-status('Сервер Invidious не надав результати API (можливі обмеження CORS). Скористайся звичайним Invidious. '+e.message,true);
-var link=byId('invidiousFallback');link.href=popular?IV+'/feed/popular':IV+'/search?q='+encodeURIComponent(q);link.focus();
+tryServers(path,!!all).then(showResults).catch(function(e){
+status('Не вдалося прочитати API Invidious. Можлива заборона CORS у TV-браузері: '+e.message+'. Звичайний Invidious залишається робочим.',true);
+var link=byId('invidiousFallback');
+link.href=popular?IV+'/feed/popular':IV+'/search?q='+encodeURIComponent(q);
+link.focus();
 });
 }
+byId('retryServers').onclick=function(){searchYouTube(!byId('youtubeQuery').value.trim(),true);};
 byId('youtubeSearch').onclick=function(){searchYouTube(false);};
 byId('youtubePopular').onclick=function(){searchYouTube(true);};
 byId('youtubeQuery').onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();searchYouTube(false);}};
@@ -203,7 +247,7 @@ if(tp){try{tp.pause();}catch(e){}}
 byId('twitchHost').textContent='';
 tp=new Twitch.Player('twitchHost',{width:'100%',height:'100%',channel:value,parent:[location.hostname],autoplay:false,muted:false});
 tp.addEventListener(Twitch.Player.READY,function(){twStatus('Канал '+value+' завантажено. Керуй кнопками під відео.');});
-tp.addEventListener(Twitch.Player.OFFLINE,function(){twStatus('Зараз канал '+value+' не веде трансляцію.');});
+tp.addEventListener(Twitch.Player.OFFLINE,function(){twStatus('Twitch повідомив, що канал '+value+' офлайн. Якщо це не так, перевір звичайний Twitch: можлива помилка вбудованого плеєра.');});
 tp.addEventListener(Twitch.Player.PLAYBACK_BLOCKED,function(){twStatus('Автовідтворення заблоковане. Натисни Play на пульті.');});
 byId('twitchPlay').focus();
 }catch(e){twStatus('Не вдалося відкрити вбудований плеєр: '+e.message);}
