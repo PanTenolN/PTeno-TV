@@ -64,7 +64,7 @@
   <main>
     <h2>Головне меню</h2>
     <div class="cards" id="cards">
-      <a class="tile youtube" id="youtube" href="tv.html?service=youtube&v=4" data-nav="1"><span class="badge" aria-hidden="true">▶</span><span><strong>YouTube</strong><span>ТВ-режим · пошук і відтворення пультом</span></span></a>
+      <a class="tile youtube" id="youtube" href="https://www.youtube.com/tv" data-nav="1"><span class="badge" aria-hidden="true">▶</span><span><strong>YouTube</strong><span>Офіційний YouTube · реклама можлива</span></span></a>
       <a class="tile twitch" href="tv.html?service=twitch&v=4" data-nav="1"><span class="badge" aria-hidden="true">T</span><span><strong>Twitch</strong><span>ТВ-режим · канали та керування</span></span></a>
       <a class="tile google" href="https://www.google.com/" data-nav="1"><span class="badge" aria-hidden="true">G</span><span><strong>Google</strong><span>Пошук у браузері телевізора</span></span></a>
       <button type="button" class="tile search" id="searchTile" data-nav="1"><span class="badge" aria-hidden="true">⌕</span><span><strong>Пошук</strong><span>Шукати відео або вебсторінки</span></span></button>
@@ -85,7 +85,7 @@
     <section class="panel" id="infoPanel" hidden>
       <h2>Про PTeno TV</h2>
       <p>Це окрема HTML-сторінка, а не нова прошивка. Вона не видаляє системну рекламу з TiVo OS і не встановлює Android-застосунки.</p>
-      <p>Для керування використовуй стрілки пульта та OK. Кнопка Назад/Escape закриває відкриту панель. Після переходу на інший сайт повернення залежить від можливостей URL Loader.</p>
+      <p>Для керування використовуй стрілки пульта та OK. Кнопка Назад/Escape закриває відкриту панель. Офіційна вебсторінка YouTube відкривається окремо від PTeno TV: керування нею та повернення залежать від URL Loader. Якщо потрібен саме встановлений додаток YouTube TiVo, відкрий його з системного меню телевізора.</p>
       <p class="small" id="diag">Діагностика браузера...</p><button id="closeInfo">Закрити</button>
     </section>
   </main>
@@ -102,7 +102,7 @@
   function validHttps(v) { try { var url = new URL(v); return url.protocol === 'https:' ? url.href : null; } catch(e) { return null; } }
   var iv = validHttps(getStore('ptenotv_invidious', DEFAULT_IV)) || DEFAULT_IV;
   var tw = validHttps(getStore('ptenotv_twitch', DEFAULT_TW)) || DEFAULT_TW;
-  function apply() { el('youtube').href = 'tv.html?service=youtube'; el('invidiousUrl').value = iv; document.querySelector('.tile.twitch').href = 'tv.html?service=twitch'; el('twitchUrl').value = tw; }
+  function apply() { el('youtube').href = 'https://www.youtube.com/tv'; el('invidiousUrl').value = iv; document.querySelector('.tile.twitch').href = 'tv.html?service=twitch&v=4'; el('twitchUrl').value = tw; }
   apply();
   var panels = ['searchPanel','settingsPanel','infoPanel'];
   function closePanels() { panels.forEach(function(id){ el(id).hidden = true; }); }
@@ -116,7 +116,7 @@
   };
   ['closeSearch','closeSettings','closeInfo'].forEach(function(id){el(id).onclick = function(){closePanels(); el('searchTile').focus();};});
   function query() {return el('q').value.trim();}
-  el('videoSearch').onclick = function(){ if(query()) location.href='tv.html?service=youtube&v=4&q='+encodeURIComponent(query()); else el('q').focus(); };
+  el('videoSearch').onclick = function(){ if(query()) location.href='https://www.youtube.com/results?search_query='+encodeURIComponent(query()); else el('q').focus(); };
   el('webSearch').onclick = function(){ if(query()) location.href='https://www.google.com/search?q='+encodeURIComponent(query()); else el('q').focus(); };
   el('q').addEventListener('keydown',function(e){ if(e.key==='Enter' || e.keyCode===13){e.preventDefault();el('videoSearch').click();} });
   el('saveSettings').onclick = function(){
